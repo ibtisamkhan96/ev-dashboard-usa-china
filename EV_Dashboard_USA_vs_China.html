@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Wars: USA vs China — 2025 Market Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0e1a; --card:#111728; --card2:#151d33; --border:#1f2a47;
+    --text:#e8ecf6; --muted:#8b96b3; --usa:#3b82f6; --usa2:#60a5fa;
+    --china:#ef4444; --china2:#f87171; --gold:#fbbf24; --green:#34d399;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;
+    background-image:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(59,130,246,.12),transparent),
+    radial-gradient(ellipse 80% 50% at 80% -10%,rgba(239,68,68,.12),transparent)}
+  .wrap{max-width:1280px;margin:0 auto;padding:32px 24px 60px}
+  header{text-align:center;margin-bottom:8px}
+  h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-1px;
+    background:linear-gradient(90deg,var(--usa2) 20%,#fff 50%,var(--china2) 80%);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px}
+  .flags{font-size:26px;letter-spacing:8px;margin-top:4px}
+  /* tabs */
+  .tabs{display:flex;gap:8px;justify-content:center;margin:28px 0;flex-wrap:wrap}
+  .tab{padding:10px 22px;border-radius:99px;border:1px solid var(--border);background:var(--card);
+    color:var(--muted);cursor:pointer;font-size:14px;font-weight:600;transition:all .25s}
+  .tab:hover{border-color:var(--usa);color:var(--text);transform:translateY(-2px)}
+  .tab.active{background:linear-gradient(90deg,#1d4ed8,#b91c1c);color:#fff;border-color:transparent;
+    box-shadow:0 4px 20px rgba(99,102,241,.35)}
+  .panel{display:none;animation:fade .45s ease}
+  .panel.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  /* KPI cards */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;
+    position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s}
+  .kpi:hover{transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .kpi.us::before{background:linear-gradient(90deg,var(--usa),var(--usa2))}
+  .kpi.cn::before{background:linear-gradient(90deg,var(--china),var(--gold))}
+  .kpi .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:8px}
+  .kpi .val{font-size:30px;font-weight:800}
+  .kpi .delta{font-size:13px;margin-top:6px;font-weight:600}
+  .up{color:var(--green)} .down{color:var(--china2)}
+  /* chart cards */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .grid .full{grid-column:1/-1}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;
+    transition:border-color .3s}
+  .card:hover{border-color:#2d3c63}
+  .card h3{font-size:16px;font-weight:700;margin-bottom:4px}
+  .card .note{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .chartbox{position:relative;height:340px}
+  .chartbox.tall{height:400px}
+  /* filter pills */
+  .pills{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .pill{padding:6px 14px;font-size:12.5px;border-radius:99px;border:1px solid var(--border);
+    background:var(--card2);color:var(--muted);cursor:pointer;font-weight:600;transition:all .2s}
+  .pill.active.us{background:rgba(59,130,246,.18);border-color:var(--usa);color:var(--usa2)}
+  .pill.active.cn{background:rgba(239,68,68,.18);border-color:var(--china);color:var(--china2)}
+  .pill.active.all{background:rgba(251,191,36,.15);border-color:var(--gold);color:var(--gold)}
+  footer{margin-top:36px;text-align:center;color:var(--muted);font-size:12px;line-height:1.9}
+  footer a{color:var(--usa2);text-decoration:none}
+  .vs{display:flex;align-items:center;justify-content:center;gap:18px;margin:6px 0 18px;flex-wrap:wrap}
+  .vs .side{text-align:center}
+  .vs .name{font-size:22px;font-weight:800}
+  .vs .badge{font-size:46px;font-weight:900;letter-spacing:-2px}
+  .vs .vstxt{font-size:15px;color:var(--muted);font-weight:800;border:1px solid var(--border);
+    border-radius:50%;width:48px;height:48px;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="flags">🇺🇸 ⚡ 🇨🇳</div>
+    <h1>EV Wars: USA vs China</h1>
+    <div class="sub">Full-Year 2025 deliveries, market share &amp; growth — Top 5 EV players per country · Updated June 2026</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-p="overview">📊 Overview</button>
+    <button class="tab" data-p="trends">📈 Growth Trends</button>
+    <button class="tab" data-p="share">🥧 Market Share</button>
+    <button class="tab" data-p="h2h">⚔️ Tesla vs BYD</button>
+  </div>
+
+  <!-- ============ OVERVIEW ============ -->
+  <div class="panel show" id="overview">
+    <div class="kpis">
+      <div class="kpi cn"><div class="lbl">🇨🇳 China NEV market 2025</div><div class="val">15.33M</div><div class="delta up">▲ +25% YoY (passenger wholesale)</div></div>
+      <div class="kpi us"><div class="lbl">🇺🇸 US EV market 2025</div><div class="val">1.28M</div><div class="delta down">▼ −2% YoY (first decline)</div></div>
+      <div class="kpi cn"><div class="lbl">🏆 #1 China — BYD (NEV)</div><div class="val">4.60M</div><div class="delta up">▲ +7.7% YoY</div></div>
+      <div class="kpi us"><div class="lbl">🏆 #1 USA — Tesla (global)</div><div class="val">1.64M</div><div class="delta down">▼ −8.6% YoY</div></div>
+    </div>
+    <div class="grid">
+      <div class="card full">
+        <h3>2025 Deliveries — All 10 Companies</h3>
+        <div class="note">Hover bars for exact figures. Tesla &amp; BYD = global; GM/Ford = US EV sales; Geely = NEV retail. China's scale advantage is stark — BYD alone outsold the entire US EV market 3.5×.</div>
+        <div class="pills" id="barPills">
+          <button class="pill active all" data-f="all">🌏 All</button>
+          <button class="pill us" data-f="us">🇺🇸 USA only</button>
+          <button class="pill cn" data-f="cn">🇨🇳 China only</button>
+        </div>
+        <div class="chartbox tall"><canvas id="barChart"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3>Year-over-Year Growth 2025 (%)</h3>
+        <div class="note">Winners and losers: XPeng more than doubled while Rivian and Li Auto shrank ~19%. The US incumbents diverged — GM surged +48% while Ford fell −14% after the federal tax credit expired in Sept 2025.</div>
+        <div class="chartbox"><canvas id="growthChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TRENDS ============ -->
+  <div class="panel" id="trends">
+    <div class="grid">
+      <div class="card">
+        <h3>🇺🇸 USA — Deliveries 2023→2025</h3>
+        <div class="note">Tesla plotted on right axis (its volume dwarfs the rest). GM is the only US player on a steep upward curve.</div>
+        <div class="chartbox tall"><canvas id="usTrend"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>🇨🇳 China — Deliveries 2023→2025</h3>
+        <div class="note">BYD on right axis. Geely's NEV arm grew +81% in 2025 and is now the clear #2; XPeng +126% was the fastest riser.</div>
+        <div class="chartbox tall"><canvas id="cnTrend"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3>Combined Country Totals (Top-5 per country, 2023→2025)</h3>
+        <div class="note">The gap keeps widening: China's top 5 delivered ~7.3M units in 2025 vs ~1.9M for the US top 5.</div>
+        <div class="chartbox"><canvas id="countryTrend"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHARE ============ -->
+  <div class="panel" id="share">
+    <div class="grid">
+      <div class="card">
+        <h3>🇺🇸 US EV Market Share 2025</h3>
+        <div class="note">Tesla still dominates at 46% (down from 49% in 2024). GM is the fastest-growing challenger.</div>
+        <div class="chartbox tall"><canvas id="usShare"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>🇨🇳 China NEV Market Share 2025</h3>
+        <div class="note">Far more fragmented: leader BYD holds just 27.2% (down from 34.1%) — Tesla ranks 5th in China at 4.9%.</div>
+        <div class="chartbox tall"><canvas id="cnShare"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3>Concentration Check — #1 Player Share vs Rest</h3>
+        <div class="note">The US is a near-monopoly market; China is a knife-fight. That competition is why Chinese EV prices and tech iterate faster.</div>
+        <div class="chartbox"><canvas id="concChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ H2H ============ -->
+  <div class="panel" id="h2h">
+    <div class="vs">
+      <div class="side"><div class="name" style="color:var(--usa2)">TESLA</div><div class="badge" style="color:var(--usa2)">1.64M</div></div>
+      <div class="vstxt">VS</div>
+      <div class="side"><div class="name" style="color:var(--china2)">BYD</div><div class="badge" style="color:var(--china2)">4.60M</div></div>
+    </div>
+    <div class="grid">
+      <div class="card full">
+        <h3>The Crossover — Annual Deliveries 2020→2025</h3>
+        <div class="note">BYD (BEV+PHEV) passed Tesla in 2022 and never looked back. Tesla has now declined two years in a row; BYD's growth is slowing but still positive. Note: ~50–55% of BYD volume is plug-in hybrid.</div>
+        <div class="chartbox tall"><canvas id="h2hChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>2025 Scorecard</h3>
+        <div class="note">Key stats side by side.</div>
+        <div class="chartbox"><canvas id="radarChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Valuation Paradox</h3>
+        <div class="note">Tesla's market cap (~$1.46T, May 2026) is ~11× BYD's (~$130B) despite delivering about a third of the vehicles — markets price Tesla as an AI/robotics company, not a carmaker.</div>
+        <div class="chartbox"><canvas id="mcapChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Data: company filings &amp; releases (FY2025), CleanTechnica, CnEVPost, Electrek, CAAM/CPCA via Global Times, Yahoo Finance.<br>
+    Tesla/BYD/Rivian/Lucid/NIO/XPeng/Li Auto/Zeekr = global deliveries · GM &amp; Ford = US EV sales · Geely = China NEV retail · BYD includes PHEVs.<br>
+    Built by Claude for Ibtisam · June 2026
+  </footer>
+</div>
+
+<script>
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+Chart.defaults.color = '#8b96b3';
+Chart.defaults.borderColor = 'rgba(139,150,179,.12)';
+Chart.defaults.font.family = "'Segoe UI',system-ui,sans-serif";
+Chart.defaults.plugins.tooltip.backgroundColor = '#1a2440';
+Chart.defaults.plugins.tooltip.padding = 12;
+Chart.defaults.plugins.tooltip.cornerRadius = 10;
+Chart.defaults.plugins.tooltip.titleFont = {weight:'700',size:13};
+Chart.defaults.animation.duration = 900;
+Chart.defaults.animation.easing = 'easeOutQuart';
+
+const fmt = n => n>=1e6 ? (n/1e6).toFixed(2)+'M' : n.toLocaleString();
+
+// ============ DATA ============
+const companies = [
+  {name:'Tesla',    country:'us', y23:1808581, y24:1789226, y25:1636129, growth:-8.6},
+  {name:'GM (EV)',  country:'us', y23:75883,  y24:114432,  y25:169887,  growth:48.5},
+  {name:'Ford (EV)',country:'us', y23:72608,  y24:97865,   y25:84113,   growth:-14.1},
+  {name:'Rivian',   country:'us', y23:50122,  y24:51579,   y25:42247,   growth:-18.1},
+  {name:'Lucid',    country:'us', y23:6001,   y24:10241,   y25:15841,   growth:54.7},
+  {name:'BYD',      country:'cn', y23:3024417,y24:4272145, y25:4600000, growth:7.7},
+  {name:'Geely (NEV)',country:'cn',y23:487461,y24:863000,  y25:1564562, growth:81.3},
+  {name:'XPeng',    country:'cn', y23:141601, y24:190068,  y25:429445,  growth:126.0},
+  {name:'Li Auto',  country:'cn', y23:376030, y24:500508,  y25:406343,  growth:-18.8},
+  {name:'NIO',      country:'cn', y23:160038, y24:221970,  y25:326028,  growth:46.9},
+];
+const grad = (ctx,c1,c2)=>{const g=ctx.createLinearGradient(0,0,0,360);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;};
+
+// ============ BAR CHART (overview) ============
+const barCtx = document.getElementById('barChart').getContext('2d');
+let barChart;
+function buildBar(filter='all'){
+  const data = companies.filter(c=>filter==='all'||c.country===filter)
+                        .sort((a,b)=>b.y25-a.y25);
+  if(barChart) barChart.destroy();
+  barChart = new Chart(barCtx,{
+    type:'bar',
+    data:{labels:data.map(c=>(c.country==='us'?'🇺🇸 ':'🇨🇳 ')+c.name),
+      datasets:[{label:'2025 deliveries',data:data.map(c=>c.y25),
+        backgroundColor:data.map(c=>c.country==='us'?grad(barCtx,'#60a5fa','#1d4ed8'):grad(barCtx,'#fbbf24','#dc2626')),
+        borderRadius:10,borderSkipped:false,maxBarThickness:54}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} vehicles · ${companies.find(x=>c.label.includes(x.name)).growth>0?'+':''}${companies.find(x=>c.label.includes(x.name)).growth}% YoY`}}},
+      scales:{x:{type:'logarithmic',min:10000,ticks:{callback:v=>[1e4,1e5,1e6,5e6].includes(v)?fmt(v):''},title:{display:true,text:'2025 deliveries (log scale)'}},
+              y:{grid:{display:false},ticks:{font:{size:13,weight:'600'},color:'#e8ecf6'}}}}
+  });
+}
+buildBar();
+document.querySelectorAll('#barPills .pill').forEach(p=>p.onclick=()=>{
+  document.querySelectorAll('#barPills .pill').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active'); buildBar(p.dataset.f);
+});
+
+// ============ GROWTH CHART ============
+const gData = [...companies].sort((a,b)=>b.growth-a.growth);
+new Chart(document.getElementById('growthChart'),{
+  type:'bar',
+  data:{labels:gData.map(c=>(c.country==='us'?'🇺🇸 ':'🇨🇳 ')+c.name),
+    datasets:[{data:gData.map(c=>c.growth),
+      backgroundColor:gData.map(c=>c.growth>=0?'rgba(52,211,153,.85)':'rgba(248,113,113,.85)'),
+      borderRadius:8,maxBarThickness:48}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw>0?'+':''}${c.raw}% vs 2024`}}},
+    scales:{y:{title:{display:true,text:'YoY growth %'},grid:{color:ctx=>ctx.tick.value===0?'rgba(232,236,246,.4)':'rgba(139,150,179,.1)'}},
+            x:{grid:{display:false},ticks:{font:{size:11.5}}}}}
+});
+
+// ============ TREND LINES ============
+const yrs=['2023','2024','2025'];
+const mkLine=(c,color,axis='y')=>({label:c.name,data:[c.y23,c.y24,c.y25],borderColor:color,
+  backgroundColor:color,tension:.35,borderWidth:3,pointRadius:5,pointHoverRadius:8,
+  pointBackgroundColor:'#0a0e1a',pointBorderWidth:2.5,yAxisID:axis});
+const usCols={'Tesla':'#3b82f6','GM (EV)':'#34d399','Ford (EV)':'#fbbf24','Rivian':'#a78bfa','Lucid':'#f472b6'};
+const cnCols={'BYD':'#ef4444','Geely (NEV)':'#fbbf24','XPeng':'#34d399','Li Auto':'#a78bfa','NIO':'#22d3ee'};
+
+new Chart(document.getElementById('usTrend'),{type:'line',
+  data:{labels:yrs,datasets:companies.filter(c=>c.country==='us').map(c=>mkLine(c,usCols[c.name],c.name==='Tesla'?'y1':'y'))},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',padding:16}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+    scales:{y:{title:{display:true,text:'Others'},ticks:{callback:fmt}},
+            y1:{position:'right',title:{display:true,text:'Tesla'},grid:{drawOnChartArea:false},ticks:{callback:fmt}}}}});
+
+new Chart(document.getElementById('cnTrend'),{type:'line',
+  data:{labels:yrs,datasets:companies.filter(c=>c.country==='cn').map(c=>mkLine(c,cnCols[c.name],c.name==='BYD'?'y1':'y'))},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',padding:16}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+    scales:{y:{title:{display:true,text:'Others'},ticks:{callback:fmt}},
+            y1:{position:'right',title:{display:true,text:'BYD'},grid:{drawOnChartArea:false},ticks:{callback:fmt}}}}});
+
+const usTot=yrs.map((_,i)=>companies.filter(c=>c.country==='us').reduce((s,c)=>s+[c.y23,c.y24,c.y25][i],0));
+const cnTot=yrs.map((_,i)=>companies.filter(c=>c.country==='cn').reduce((s,c)=>s+[c.y23,c.y24,c.y25][i],0));
+new Chart(document.getElementById('countryTrend'),{type:'bar',
+  data:{labels:yrs,datasets:[
+    {label:'🇺🇸 US Top 5',data:usTot,backgroundColor:grad(document.getElementById('countryTrend').getContext('2d'),'#60a5fa','#1d4ed8'),borderRadius:10,maxBarThickness:90},
+    {label:'🇨🇳 China Top 5',data:cnTot,backgroundColor:grad(document.getElementById('countryTrend').getContext('2d'),'#fbbf24','#dc2626'),borderRadius:10,maxBarThickness:90}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'rectRounded',padding:18}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+    scales:{y:{ticks:{callback:fmt}},x:{grid:{display:false}}}}});
+
+// ============ SHARE DONUTS ============
+const donutOpts=t=>({responsive:true,maintainAspectRatio:false,cutout:'58%',
+  plugins:{legend:{position:'right',labels:{usePointStyle:true,pointStyle:'circle',padding:12,font:{size:12.5}}},
+    tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw}%`}}}});
+new Chart(document.getElementById('usShare'),{type:'doughnut',
+  data:{labels:['Tesla 46%','GM 13.3%','Ford 6.6%','Hyundai-Kia ~9%','Rivian 3.3%','Lucid 1.2%','Others 20.6%'],
+    datasets:[{data:[46,13.3,6.6,9,3.3,1.2,20.6],
+      backgroundColor:['#3b82f6','#34d399','#fbbf24','#22d3ee','#a78bfa','#f472b6','#33405f'],
+      borderColor:'#0a0e1a',borderWidth:3,hoverOffset:14}]},options:donutOpts()});
+new Chart(document.getElementById('cnShare'),{type:'doughnut',
+  data:{labels:['BYD 27.2%','Geely 12.2%','Changan 6.2%','SAIC-GM-Wuling ~6%','Tesla 4.9%','Others 43.5%'],
+    datasets:[{data:[27.2,12.2,6.2,6,4.9,43.5],
+      backgroundColor:['#ef4444','#fbbf24','#34d399','#22d3ee','#3b82f6','#33405f'],
+      borderColor:'#0a0e1a',borderWidth:3,hoverOffset:14}]},options:donutOpts()});
+
+new Chart(document.getElementById('concChart'),{type:'bar',
+  data:{labels:['🇺🇸 USA (Tesla)','🇨🇳 China (BYD)'],
+    datasets:[{label:'#1 player share',data:[46,27.2],backgroundColor:['#3b82f6','#ef4444'],borderRadius:10,maxBarThickness:70},
+              {label:'Rest of market',data:[54,72.8],backgroundColor:'rgba(139,150,179,.25)',borderRadius:10,maxBarThickness:70}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'rectRounded'}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+    scales:{x:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},y:{stacked:true,grid:{display:false},ticks:{font:{size:14,weight:'700'},color:'#e8ecf6'}}}}});
+
+// ============ H2H ============
+new Chart(document.getElementById('h2hChart'),{type:'line',
+  data:{labels:['2020','2021','2022','2023','2024','2025'],datasets:[
+    {label:'Tesla (BEV)',data:[499550,936172,1313851,1808581,1789226,1636129],
+     borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.15)',fill:true,tension:.35,borderWidth:3.5,pointRadius:5,pointHoverRadius:9,pointBackgroundColor:'#0a0e1a',pointBorderWidth:2.5},
+    {label:'BYD (BEV+PHEV)',data:[189689,603783,1868543,3024417,4272145,4600000],
+     borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.15)',fill:true,tension:.35,borderWidth:3.5,pointRadius:5,pointHoverRadius:9,pointBackgroundColor:'#0a0e1a',pointBorderWidth:2.5}]},
+  options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',padding:18,font:{size:13}}},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+    scales:{y:{ticks:{callback:fmt}},x:{grid:{display:false}}}}});
+
+new Chart(document.getElementById('radarChart'),{type:'radar',
+  data:{labels:['Volume','Growth','Global reach','Profit/unit','Brand value','Tech (autonomy)'],
+    datasets:[
+      {label:'Tesla',data:[6,3,9,8,10,9],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.2)',pointBackgroundColor:'#3b82f6',borderWidth:2.5},
+      {label:'BYD',data:[10,6,7,5,7,6],borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.2)',pointBackgroundColor:'#ef4444',borderWidth:2.5}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle'}}},
+    scales:{r:{min:0,max:10,ticks:{display:false},grid:{color:'rgba(139,150,179,.15)'},
+      angleLines:{color:'rgba(139,150,179,.15)'},pointLabels:{font:{size:12,weight:'600'},color:'#e8ecf6'}}}}});
+
+new Chart(document.getElementById('mcapChart'),{type:'bar',
+  data:{labels:['Tesla','BYD'],datasets:[{label:'Market cap ($B)',data:[1460,130],
+    backgroundColor:['#3b82f6','#ef4444'],borderRadius:12,maxBarThickness:90}]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` $${c.raw.toLocaleString()}B (May 2026)`}}},
+    scales:{y:{ticks:{callback:v=>'$'+v+'B'}},x:{grid:{display:false},ticks:{font:{size:14,weight:'700'},color:'#e8ecf6'}}}}});
+
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('show'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.p).classList.add('show');
+});
+</script>
+</body>
+</html>
